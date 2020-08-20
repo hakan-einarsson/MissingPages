@@ -1,8 +1,8 @@
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 var playing = false;
-var targetPosition = {'x':1,'y':1}
-var direction={'x':1,'y':0}
+var targetPosition = {'x':1,'y':1};
+var direction={'x':1,'y':0};
 var moving=false;
 var cells = [];
 let newTarget=null;
@@ -27,10 +27,10 @@ for (y=0; y < canvas.height; y+=30){
 
 cells.forEach(element => {
     if (obstaclesCoords.includes(element.name)){
-        drawCell(element.x,element.y,"89,125,128")
+        drawCell(element.x,element.y,"89,125,128");
         obstacles.push(element);
     } else {
-        drawCell(element.x,element.y,"179,250,255");   
+        drawCell(element.x,element.y,"179,250,255"); 
         }
     });
 
@@ -85,14 +85,15 @@ function movement(){
 }
 
 // return true if the rectangle and circle are colliding
-function isColliding(m,rect){
-    var distX = Math.abs(player.position.x - rect.x-rect.width/2) - Math.abs(m.x)*2;
-    var distY = Math.abs(player.position.y - rect.y-rect.height/2) - Math.abs(m.y)*2;
+function isColliding(rect){
+
+    var distX = Math.abs(player.position.x - rect.position.x) - Math.abs(m.x)*2;
+    var distY = Math.abs(player.position.y - rect.position.y) - Math.abs(m.y)*2;
 
     if (distX > (rect.width/2 + player.circleR)) { return false; }
     if (distY > (rect.height/2 + player.circleR)) { return false; }
 
-    if (distX <= (rect.with/2)) { return true; } 
+    if (distX <= (rect.with/2)) { return true; }
     if (distY <= (rect.height/2)) { return true; }
 
     var dx=distX-rect.width/2;
