@@ -7,10 +7,20 @@ var moving=false;
 var cells = [];
 let newTarget=null;
 let circle = drawGradientCircle(50,50,1,50);
-//circle.draw();
 let playerPath=[];
 let obstaclesCoords=[];
 let obstacles=[];
+let cO=[]
+for (y=1;y < 15;y++){
+    for (x=1;x < 21;x++){
+        if (x == 5 || x == 14){
+            if (y < 5 || y > 8) {
+                obstaclesCoords.push(x.toString()+","+y.toString());
+            }
+        }
+    }
+}
+let keys = {'w':0,'s':0,'a':0,'d':0}
 
 for (x=0;x<canvas.width/30;x++){
     for(y=0;y<canvas.height/30;y++){
@@ -21,7 +31,6 @@ for (x=0;x<canvas.width/30;x++){
 for (y=0; y < canvas.height; y+=30){
     for (x=0; x < canvas.width; x+=30){
         cells.push(createCell([x,y]));
-        
     }
 }
 
@@ -37,7 +46,6 @@ cells.forEach(element => {
 
 
 function createCell(position){
-
     return {'width':30,
             'height':30,
             'x':position[0],
@@ -47,26 +55,25 @@ function createCell(position){
         };
 }
 
-canvas.addEventListener('mousedown', function(e) {
+canvas.addEventListener('mousemove', function(e) {
     targetPosition=getCursorPosition(canvas, e);
+    console.log(targetPosition);
     movement();
 });
+
+window.addEventListener('keydown',function(e){
+    if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=1;
+});
+
+window.addEventListener('keyup', function(e) {
+    if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=0;
+})
 
 function getCursorPosition(canvas, event) {
     const rect = canvas.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
-    /*for (i=0;i<cells.length;i++){
-        console.log(cells[i].x <= x,x < cells[i].x+cells[i].width,cells[i].y < y,y < cells[i].y+cells[i].height)
-        console.log(cells[i].x,x,cells[i].x+cells[i].width,cells[i].y,y,cells[i].y+cells[i].height)
-        if (cells[i].x <= x && x < cells[i].x+cells[i].width &&
-            cells[i].y <= y && y < cells[i].y+cells[i].height){
-                console.log(cells[i].name)
-                return cells[i].position;
-            } 
-    };*/
     return {'x':x,"y":y};
-    //console.log("x: " + x + " y: " + y)
 }
 
 function startAnimating(fps) {
@@ -80,26 +87,34 @@ function startAnimating(fps) {
 function movement(){
     let dx = targetPosition.x-player.position.x;
     let dy = targetPosition.y-player.position.y;
-    let distance=Math.sqrt(dx*dx+dy*dy)
+    let distance=Math.sqrt(dx*dx+dy*dy);
     if (distance != 0) direction = {'x': dx/distance,'y':dy/distance};
 }
 
-// return true if the rectangle and circle are colliding
-function isColliding(rect){
-
-    var distX = Math.abs(player.position.x - rect.position.x) - Math.abs(m.x)*2;
-    var distY = Math.abs(player.position.y - rect.position.y) - Math.abs(m.y)*2;
-
-    if (distX > (rect.width/2 + player.circleR)) { return false; }
-    if (distY > (rect.height/2 + player.circleR)) { return false; }
-
-    if (distX <= (rect.with/2)) { return true; }
-    if (distY <= (rect.height/2)) { return true; }
-
-    var dx=distX-rect.width/2;
-    var dy=distY-rect.height/2;
-    return (dx*dx+dy*dy<=(player.circleR*player.circleR));
+function getDirection(p){
+    let distance=Math.sqrt(p.x*p.x+p.y*p.y);
+    if (distance != 0) return {'x': p.x/distance,'y':p.y/distance};
 }
+
+
+function isColliding(v,rect){
+    //--------------------kollar om ingen--------------
+    var distX = Math.abs(player.position.x - rect.position.x)-Math.abs(v.x); //mäter upp avstånd inkl v för nästa steg
+    var distY = Math.abs(player.position.y - rect.position.y)-Math.abs(v.y);
+    if (distX > (rect.width/2 + player.circleR)) { return false; } //kollar om avstånd är längre än mitt på rect till mitt på cirkel
+    if (distY > (rect.height/2 + player.circleR)) { return false; }
+    //-------------------------------------------------
+    if (distX <= (rect.width/2) + (player.circleR)) {
+        console.log("first true")
+        if (rect.x+rect.width < player.position.x && v.x > 0) return false;
+        if (rect.x > player.position.x && v.x < 0) return false;
+        if (rect.y+rect.height < player.position.y && v.y > 0) return false;
+        if (rect.y > player.position.y && v.y < 0) return false;
+        return true; 
+    }
+    return false;
+}
+
 
 function animate() {
     if (playing){
@@ -117,11 +132,14 @@ function animate() {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
             });
-                
-            if (moving){
+            if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
+                moving=true;
+                //console.log("happening")
+                direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
                 player.height=22
-                player.radius=15    
+                player.radius=15     
             } else {
+                moving=false;
                 player.height=15;
                 player.radius=12;
             }
@@ -130,34 +148,23 @@ function animate() {
                 circle.position.x++;
             }
             circle.draw();
-                
-
-                
-            if (player.position != targetPosition){
-                moving=true;
-                if (Math.abs(targetPosition.x-player.position.x) < player.speed && Math.abs(targetPosition.y-player.position.y) < player.speed){
-                    console.log(targetPosition);
-                    player.position=targetPosition;
-                    moving=false;
-                } else {
-                    /*if (false) console.log("."); //for if in cell position = minus radius direction to cell
-                    else{*/
-                    colliding=false
-                    for (i=0;i<obstacles.length;i++){
-                        if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},obstacles[i])){
-                            colliding=true;
-                        }
+            colliding=false
+            for (i=0;i<obstacles.length;i++){
+                if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},obstacles[i])){
+                    colliding=true;
                     }
-                    if (!colliding){
-                        player.position.x+=direction.x*player.speed;
-                        player.position.y+=direction.y*player.speed;
-                    }
+                }
+            if (!colliding && moving){
+                player.position.x+=direction.x*player.speed;
+                player.position.y+=direction.y*player.speed;
 
                 }
+
             }
         }
     }
-}
+    
+
 
 function drawGradientCircle(x,y,r1,r2){
     let gradientCircle = {
@@ -193,7 +200,7 @@ function drawGradientCircle(x,y,r1,r2){
 let player= {
     'width':20,
     'height':22,
-    'position':{'x':150,'y':100},
+    'position':{'x':70,'y':70},
     'speed':2,
     'radius':15,
     'circleR':5,
@@ -220,13 +227,13 @@ let player= {
 
         ctx.beginPath();
         ctx.fillStyle="#575756";
-        ctx.arc(x-direction.x*5/2, y-direction.y*5/2, 5, 0, Math.PI * 2, true);
+        ctx.arc(x, y, 5, 0, Math.PI * 2, true);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(x-direction.x*5/2-1, y-direction.y*5/2+1,4, 0, Math.PI * 2, true);
+        ctx.arc(x-1, y+1,4, 0, Math.PI * 2, true);
         ctx.fillStyle="black";
         ctx.closePath();
         ctx.fill();
@@ -238,23 +245,23 @@ function drawCell(x,y,color){
     clr="rgba("+color
     ctx.lineWidth="2"
     ctx.beginPath();
-    ctx.moveTo(x+29,y+29);
-    ctx.lineTo(x+29,y+1);
-    ctx.lineTo(x+1,y+1);
+    ctx.moveTo(x+28,y+28);
+    ctx.lineTo(x+28,y+2);
+    ctx.lineTo(x+2,y+2);
     ctx.strokeStyle=clr+",1)";
     ctx.stroke();
     ctx.closePath();
 
     ctx.beginPath();
-    ctx.moveTo(x+1,y+1);
-    ctx.lineTo(x+1,y+29);
-    ctx.lineTo(x+29,y+29);
+    ctx.moveTo(x+2,y+2);
+    ctx.lineTo(x+2,y+28);
+    ctx.lineTo(x+28,y+28);
     ctx.strokeStyle=clr+",0.2)";
     ctx.stroke();
     ctx.closePath();
 
     ctx.beginPath();
-    ctx.rect(x+2,y+2,26,26);
+    ctx.rect(x+3,y+3,24,24);
     ctx.fillStyle=clr+",0.6)";
     ctx.fill();
     ctx.closePath();
@@ -265,6 +272,20 @@ function togglePlaying() {
         playing=true;
     } else startAnimating(120);
 
+}
+
+function enemyRobot(x,y){
+    let rob = {
+        'position':{'x':x,'y':y},
+        'w':50,
+        'h':30,
+        'health':3,
+        'draw':function(){
+            ctx.beginPath();
+            
+        }
+
+    }
 }
 
 player.draw();
