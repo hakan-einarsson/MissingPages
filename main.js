@@ -10,23 +10,26 @@ let circle = drawGradientCircle(50,50,1,50);
 let playerPath=[];
 let obstaclesCoords=[];
 let obstacles=[];
+let enemies=[];
+let keys = {'w':0,'s':0,'a':0,'d':0}
+
+enemies.push(enemyRobot(150,330,[[150,330],[150,90],[90,90]]))
+enemies.push(enemyRobot(450,330,[[450,330],[450,90]]))
 let cO=[]
+ys=[0,3,4,9,10]
 for (y=1;y < 15;y++){
     for (x=1;x < 21;x++){
-        if (x == 5 || x == 14){
-            if (y < 5 || y > 8) {
-                obstaclesCoords.push(x.toString()+","+y.toString());
-            }
-        }
+        if (x == canvas.width/30/2 && !ys.includes(y)|| x == canvas.width/30/2-1 &&  !ys.includes(y)) obstaclesCoords.push(x.toString()+","+y.toString());
     }
 }
-let keys = {'w':0,'s':0,'a':0,'d':0}
 
 for (x=0;x<canvas.width/30;x++){
     for(y=0;y<canvas.height/30;y++){
         if (x==0 || y ==0 || x==canvas.width/30-1 || y==canvas.height/30-1) obstaclesCoords.push(x.toString()+","+y.toString());
     }
 }
+
+obstaclesCoords.splice(obstaclesCoords.indexOf("0,7"),1);
 
 for (y=0; y < canvas.height; y+=30){
     for (x=0; x < canvas.width; x+=30){
@@ -43,7 +46,9 @@ cells.forEach(element => {
         }
     });
 
-
+enemies.forEach(e => {
+        e.draw();
+    });
 
 function createCell(position){
     return {'width':30,
@@ -55,11 +60,11 @@ function createCell(position){
         };
 }
 
-canvas.addEventListener('mousemove', function(e) {
+/*canvas.addEventListener('mousemove', function(e) {
     targetPosition=getCursorPosition(canvas, e);
     console.log(targetPosition);
     movement();
-});
+});*/
 
 window.addEventListener('keydown',function(e){
     if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=1;
@@ -84,26 +89,24 @@ function startAnimating(fps) {
     animate();
 } 
 
-function movement(){
-    let dx = targetPosition.x-player.position.x;
-    let dy = targetPosition.y-player.position.y;
-    let distance=Math.sqrt(dx*dx+dy*dy);
-    if (distance != 0) direction = {'x': dx/distance,'y':dy/distance};
-}
-
 function getDirection(p){
     let distance=Math.sqrt(p.x*p.x+p.y*p.y);
     if (distance != 0) return {'x': p.x/distance,'y':p.y/distance};
 }
 
+function getDirectionTo(p,toP){
+    let dx = toP[0]-p.x;
+    let dy = toP[1]-p.y;
+    let distance=Math.sqrt(dx*dx+dy*dy);
+    if (distance != 0) return {'x': dx/distance,'y':dy/distance,'d':distance};
+}
+
 
 function isColliding(v,rect){
-    //--------------------kollar om ingen--------------
     var distX = Math.abs(player.position.x - rect.position.x)-Math.abs(v.x); //mäter upp avstånd inkl v för nästa steg
     var distY = Math.abs(player.position.y - rect.position.y)-Math.abs(v.y);
     if (distX > (rect.width/2 + player.circleR)) { return false; } //kollar om avstånd är längre än mitt på rect till mitt på cirkel
     if (distY > (rect.height/2 + player.circleR)) { return false; }
-    //-------------------------------------------------
     if (distX <= (rect.width/2) + (player.circleR)) {
         console.log("first true")
         if (rect.x+rect.width < player.position.x && v.x > 0) return false;
@@ -132,9 +135,12 @@ function animate() {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
             });
+            enemies.forEach(e => {
+                e.move();
+                e.draw();
+            });
             if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
                 moving=true;
-                //console.log("happening")
                 direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
                 player.height=22
                 player.radius=15     
@@ -163,8 +169,6 @@ function animate() {
             }
         }
     }
-    
-
 
 function drawGradientCircle(x,y,r1,r2){
     let gradientCircle = {
@@ -193,7 +197,6 @@ function drawGradientCircle(x,y,r1,r2){
             return Math.abs((this.position.x - position.x) * (this.position.x - position.x) + (this.position.y - position.y) * (this.position.y - position.y)) < (this.radius2 + r) * (this.radius2 + r);
          }
     }
-
     return gradientCircle;
 }
 
@@ -223,48 +226,47 @@ let player= {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-
-
-        ctx.beginPath();
-        ctx.fillStyle="#575756";
-        ctx.arc(x, y, 5, 0, Math.PI * 2, true);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(x-1, y+1,4, 0, Math.PI * 2, true);
-        ctx.fillStyle="black";
-        ctx.closePath();
-        ctx.fill();
+        drawCircle(x,y,5,true,"#575756",true)
+        drawCircle(x-1,y+1,4)
     }
-
 }
 
+function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
+    ctx.beginPath();
+    ctx.arc(x, y,r, 0, Math.PI * 2, true);
+    if (fill) ctx.fillStyle=cFill;
+    if (stroke) ctx.strokeStyle=cStroke
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+    ctx.closePath();
+}
+
+function drawRect(x,y,w,h,fill=true,cFill="black",stroke=false,cStroke="black"){
+    ctx.beginPath();
+    ctx.rect(x,y,w,h);
+    if (fill) ctx.fillStyle=cFill;
+    if (stroke) ctx.strokeStyle=cStroke
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+    ctx.closePath();
+}
+
+function drawLine(x,y,tx,ty,c="black",w="1",lines=false,tx2="",ty2=""){
+    ctx.beginPath();
+    ctx.lineWidth=w;
+    ctx.strokeStyle=c;
+    ctx.moveTo(x,y);
+    ctx.lineTo(tx,ty);
+    if (lines) ctx.lineTo(tx2,ty2);
+    ctx.stroke();
+    ctx.closePath();
+}
+
+
 function drawCell(x,y,color){
-    clr="rgba("+color
-    ctx.lineWidth="2"
-    ctx.beginPath();
-    ctx.moveTo(x+28,y+28);
-    ctx.lineTo(x+28,y+2);
-    ctx.lineTo(x+2,y+2);
-    ctx.strokeStyle=clr+",1)";
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(x+2,y+2);
-    ctx.lineTo(x+2,y+28);
-    ctx.lineTo(x+28,y+28);
-    ctx.strokeStyle=clr+",0.2)";
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.rect(x+3,y+3,24,24);
-    ctx.fillStyle=clr+",0.6)";
-    ctx.fill();
-    ctx.closePath();
+    drawLine(x+28,y+28,x+28,y+2,"rgba("+color+",1)","2",true,x+2,y+2)
+    drawLine(x+2,y+2,x+2,y+28,"rgba("+color+",0.2)","2",true,x+28,y+28);
+    drawRect(x+3,y+3,24,24,true,"rgba("+color+",0.6)");
 }
 
 function togglePlaying() {
@@ -274,18 +276,36 @@ function togglePlaying() {
 
 }
 
-function enemyRobot(x,y){
+function enemyRobot(x,y,path=[]){
     let rob = {
-        'position':{'x':x,'y':y},
-        'w':50,
-        'h':30,
-        'health':3,
+        'w':38,
+        'h':25,
+        'p':{'x':x,'y':y},
+        'speed':1,
+        'pathPart':1,
+        'path':path,
+        'move':function(){
+            if (this.pathPart+1 > this.path.length){
+                this.pathPart=0;
+            }
+            let m = getDirectionTo(this.p,this.path[this.pathPart]);
+            if (Math.abs(this.path[this.pathPart][0]-this.p.x) < this.speed && Math.abs(this.path[this.pathPart][1]-this.p.y) < this.speed){
+                this.p.x=this.path[this.pathPart][0]
+                this.p.y=this.path[this.pathPart][1]
+                this.pathPart++
+            }
+            else {
+                this.p.x+=m.x*this.speed
+                this.p.y+=m.y*this.speed
+            }
+        },
         'draw':function(){
-            ctx.beginPath();
-            
-        }
-
+            drawRect(this.p.x-this.w/2,this.p.y-this.h/2,this.w,this.h,true,"rgb(99,57,99)",true);
+            drawRect(this.p.x-this.w/2+1,this.p.y-this.h/2+3,this.w-4,this.h-3,true,"rgb(56,31,55)");
+            drawRect(this.p.x-10,this.p.y-10,20,20,true,"rgb(99,57,99)",true);
+            drawRect(this.p.x-9,this.p.y-7,16,16,true,"rgb(56,31,55)");            
+        },
     }
+    return rob;
 }
-
 player.draw();
