@@ -13,8 +13,10 @@ let obstacles=[];
 let enemies=[];
 let keys = {'w':0,'s':0,'a':0,'d':0}
 
-enemies.push(enemyRobot(150,330,[[150,330],[150,90],[90,90]]))
+enemies.push(enemyRobot(150,300,[[150,330],[150,90]]))
 enemies.push(enemyRobot(450,330,[[450,330],[450,90]]))
+
+
 let cO=[]
 ys=[0,3,4,9,10]
 for (y=1;y < 15;y++){
@@ -49,6 +51,7 @@ cells.forEach(element => {
 enemies.forEach(e => {
         e.draw();
     });
+
 
 function createCell(position){
     return {'width':30,
@@ -119,57 +122,6 @@ function isColliding(v,rect){
 }
 
 
-function animate() {
-    if (playing){
-        requestAnimationFrame(animate);
-        now = Date.now();
-        elapsed = now - then;
-        if (elapsed > fpsInterval) {
-            then = now - (elapsed % fpsInterval);
-            ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
-            
-            cells.forEach(element => {
-                if (obstaclesCoords.includes(element.name)){
-                    drawCell(element.x,element.y,"89,125,128")
-                } else {
-                    drawCell(element.x,element.y,"179,250,255");   
-                    }
-            });
-            enemies.forEach(e => {
-                e.move();
-                e.draw();
-            });
-            if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
-                moving=true;
-                direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
-                player.height=22
-                player.radius=15     
-            } else {
-                moving=false;
-                player.height=15;
-                player.radius=12;
-            }
-            player.draw(); 
-            if (circle.position.x < canvas.width - 50 ){
-                circle.position.x++;
-            }
-            circle.draw();
-            colliding=false
-            for (i=0;i<obstacles.length;i++){
-                if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},obstacles[i])){
-                    colliding=true;
-                    }
-                }
-            if (!colliding && moving){
-                player.position.x+=direction.x*player.speed;
-                player.position.y+=direction.y*player.speed;
-
-                }
-
-            }
-        }
-    }
-
 function drawGradientCircle(x,y,r1,r2){
     let gradientCircle = {
         'position':{'x':x,'y':y},
@@ -230,7 +182,9 @@ let player= {
         drawCircle(x-1,y+1,4)
     }
 }
-
+player.draw();
+let tank = createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]);
+tank.draw();
 function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
     ctx.beginPath();
     ctx.arc(x, y,r, 0, Math.PI * 2, true);
@@ -251,21 +205,36 @@ function drawRect(x,y,w,h,fill=true,cFill="black",stroke=false,cStroke="black"){
     ctx.closePath();
 }
 
-function drawLine(x,y,tx,ty,c="black",w="1",lines=false,tx2="",ty2=""){
+function drawLine(x,y,tx,ty,c="black",w="1",lines=false,array=[]){
     ctx.beginPath();
     ctx.lineWidth=w;
     ctx.strokeStyle=c;
     ctx.moveTo(x,y);
     ctx.lineTo(tx,ty);
-    if (lines) ctx.lineTo(tx2,ty2);
+    if (lines){
+        array.forEach(e => {
+            ctx.lineTo(e[0],e[1]);
+        })
+    } 
     ctx.stroke();
     ctx.closePath();
 }
 
+function drawTriangle(x1,y1,x2,y2,x3,y3,c,fill=true,stroke=false,sC="black"){
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
+    ctx.lineTo(x3,y3);
+
+    ctx.fillStyle=c;
+    ctx.fill();
+
+}
+
 
 function drawCell(x,y,color){
-    drawLine(x+28,y+28,x+28,y+2,"rgba("+color+",1)","2",true,x+2,y+2)
-    drawLine(x+2,y+2,x+2,y+28,"rgba("+color+",0.2)","2",true,x+28,y+28);
+    drawLine(x+28,y+28,x+28,y+2,"rgba("+color+",1)","2",true,[[x+2,y+2]])
+    drawLine(x+2,y+2,x+2,y+28,"rgba("+color+",0.2)","2",true,[[x+28,y+28]]);
     drawRect(x+3,y+3,24,24,true,"rgba("+color+",0.6)");
 }
 
@@ -276,6 +245,53 @@ function togglePlaying() {
 
 }
 
+function createTank(x,y,path){
+    return {'x':x,
+            'y':y,
+            'p': {'x':x,'y':y},
+            'r':20,
+            'speed':1,
+            'd':{'x':0.7,'y':-0.7},
+            'aimD':{'x':1,'y':0},
+            'c': "202,173,247",
+            'path':path,
+            'pathPart':1,
+            'move':function(){
+                if (this.pathPart+1 > this.path.length){
+                    this.pathPart=0;
+                }
+                this.d = getDirectionTo(this.p,this.path[this.pathPart]);
+                if (Math.abs(this.path[this.pathPart][0]-this.p.x) < this.speed && Math.abs(this.path[this.pathPart][1]-this.p.y) < this.speed){
+                    this.p.x=this.path[this.pathPart][0]
+                    this.p.y=this.path[this.pathPart][1]
+                    this.pathPart++
+                }
+                else {
+                    this.p.x+=this.d.x*this.speed
+                    this.p.y+=this.d.y*this.speed
+                }
+            },
+            'draw': function(){
+                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,true,"#000000")
+                drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y-this.r,this.p.x-this.r,this.p.y-this.r,"rgba("+this.c+",0.9)",true);//upp
+                drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y-this.r,this.p.x+this.r,this.p.y+this.r,"rgba("+this.c+",0.7)",true);//höger
+                drawTriangle(this.p.x,this.p.y,this.p.x-this.r,this.p.y-this.r,this.p.x-this.r,this.p.y+this.r,"rgba("+this.c+",0.5)",true);//vänster
+                drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y+this.r,this.p.x-this.r,this.p.y+this.r,"rgba("+this.c+",0.3)",true);//ner
+                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,false,"",true)
+                drawLine(this.p.x,this.p.y,this.p.x+this.aimD.x*30,this.p.y+this.aimD.y*30,"#252525",10)
+                drawCircle(this.p.x,this.p.y,this.r/1.5,true,"#000000");
+                drawCircle(this.p.x,this.p.y,this.r/1.5,true,"rgba("+this.c+",0.7)")
+                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"#000000")
+                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"rgba("+this.c+",0.6)")
+            },
+            'setDirection':function(){
+                this.aimD=getDirectionTo({'x':this.p.x,'y':this.p.y},[player.position.x,player.position.y]);
+                console.log(this.aimD)
+                console.log(this.p)
+            }
+        }
+}
+
 function enemyRobot(x,y,path=[]){
     let rob = {
         'w':38,
@@ -284,28 +300,88 @@ function enemyRobot(x,y,path=[]){
         'speed':1,
         'pathPart':1,
         'path':path,
+        'd':{'x':0,'y':1},
         'move':function(){
             if (this.pathPart+1 > this.path.length){
                 this.pathPart=0;
             }
-            let m = getDirectionTo(this.p,this.path[this.pathPart]);
+            this.d = getDirectionTo(this.p,this.path[this.pathPart]);
             if (Math.abs(this.path[this.pathPart][0]-this.p.x) < this.speed && Math.abs(this.path[this.pathPart][1]-this.p.y) < this.speed){
                 this.p.x=this.path[this.pathPart][0]
                 this.p.y=this.path[this.pathPart][1]
                 this.pathPart++
             }
             else {
-                this.p.x+=m.x*this.speed
-                this.p.y+=m.y*this.speed
+                this.p.x+=this.d.x*this.speed
+                this.p.y+=this.d.y*this.speed
             }
         },
         'draw':function(){
-            drawRect(this.p.x-this.w/2,this.p.y-this.h/2,this.w,this.h,true,"rgb(99,57,99)",true);
+            drawRect(this.p.x-this.w/2,this.p.y-this.h/2,this.w/2+this.w/2*this.d.x,this.h/2+this.h/2*this.d.y,true,"rgb(99,57,99)",true);
             drawRect(this.p.x-this.w/2+1,this.p.y-this.h/2+3,this.w-4,this.h-3,true,"rgb(56,31,55)");
             drawRect(this.p.x-10,this.p.y-10,20,20,true,"rgb(99,57,99)",true);
-            drawRect(this.p.x-9,this.p.y-7,16,16,true,"rgb(56,31,55)");            
+            drawRect(this.p.x-9,this.p.y-7,16,16,true,"rgb(56,31,55)");
+            drawLine(this.p.x-this.d.y*10,
+                    this.p.y+this.d.y*10,
+                    this.p.x+this.d.y*10,
+                    this.p.y+this.d.y*10,
+                "red");
+            //console.log(this.d)
         },
     }
     return rob;
 }
-player.draw();
+
+function animate() {
+    if (playing){
+        requestAnimationFrame(animate);
+        now = Date.now();
+        elapsed = now - then;
+        if (elapsed > fpsInterval) {
+            then = now - (elapsed % fpsInterval);
+            ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+            
+            cells.forEach(element => {
+                if (obstaclesCoords.includes(element.name)){
+                    drawCell(element.x,element.y,"89,125,128")
+                } else {
+                    drawCell(element.x,element.y,"179,250,255");   
+                    }
+            });
+            /*enemies.forEach(e => {
+                e.move();
+                e.draw();
+            });*/
+            if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
+                moving=true;
+                direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
+                player.height=22
+                player.radius=15     
+            } else {
+                moving=false;
+                player.height=15;
+                player.radius=12;
+            }
+            tank.move();
+            tank.setDirection();
+            tank.draw();
+            player.draw(); 
+            /*if (circle.position.x < canvas.width - 50 ){
+                circle.position.x++;
+            }
+            circle.draw();*/
+            colliding=false
+            for (i=0;i<obstacles.length;i++){
+                if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},obstacles[i])){
+                    colliding=true;
+                    }
+                }
+            if (!colliding && moving){
+                player.position.x+=direction.x*player.speed;
+                player.position.y+=direction.y*player.speed;
+
+                }
+
+            }
+        }
+    }
