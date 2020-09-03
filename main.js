@@ -14,8 +14,6 @@ let enemies=[];
 let keys = {'w':0,'s':0,'a':0,'d':0}
 let sec = 0;
 
-enemies.push(enemyRobot(150,300,[[150,330],[150,90]]))
-enemies.push(enemyRobot(450,330,[[450,330],[450,90]]))
 
 
 let cO=[]
@@ -184,8 +182,11 @@ let player= {
     }
 }
 player.draw();
-let tank = createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]);
-tank.draw();
+enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
+enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
+enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
+enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
+
 function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
     ctx.beginPath();
     ctx.arc(x, y,r, 0, Math.PI * 2, true);
@@ -199,11 +200,11 @@ function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
 function drawRect(x,y,w,h,fill=true,cFill="black",stroke=false,cStroke="black"){
     ctx.beginPath();
     ctx.rect(x,y,w,h);
+    ctx.closePath();
     if (fill) ctx.fillStyle=cFill;
     if (stroke) ctx.strokeStyle=cStroke
     if (fill) ctx.fill();
     if (stroke) ctx.stroke();
-    ctx.closePath();
 }
 
 function drawLine(x,y,tx,ty,c="black",w="1",lines=false,array=[]){
@@ -223,9 +224,11 @@ function drawLine(x,y,tx,ty,c="black",w="1",lines=false,array=[]){
 
 function drawTriangle(x1,y1,x2,y2,x3,y3,c,fill=true,stroke=false,sC="black"){
     ctx.beginPath();
+    ctx.lineWidth=1;
     ctx.moveTo(x1,y1);
     ctx.lineTo(x2,y2);
     ctx.lineTo(x3,y3);
+    ctx.closePath();
 
     ctx.fillStyle=c;
     ctx.fill();
@@ -247,8 +250,8 @@ function togglePlaying() {
 }
 
 function createTank(x,y,path){
-    return {'x':x,
-            'y':y,
+    return {/*'x':x,
+            'y':y,*/
             'p': {'x':x,'y':y},
             'r':20,
             'speed':1,
@@ -357,10 +360,11 @@ function animate() {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
             });
-            /*enemies.forEach(e => {
+            enemies.forEach(e => {
                 e.move();
+                e.setDirection();
                 e.draw();
-            });*/
+            });
             if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
                 moving=true;
                 direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
@@ -371,9 +375,7 @@ function animate() {
                 player.height=15;
                 player.radius=12;
             }
-            tank.move();
-            tank.setDirection();
-            tank.draw();
+
             player.draw(); 
             /*if (circle.position.x < canvas.width - 50 ){
                 circle.position.x++;
