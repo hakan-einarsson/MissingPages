@@ -12,6 +12,7 @@ let obstaclesCoords=[];
 let obstacles=[];
 let enemies=[];
 let keys = {'w':0,'s':0,'a':0,'d':0}
+let sec = 0;
 
 enemies.push(enemyRobot(150,300,[[150,330],[150,90]]))
 enemies.push(enemyRobot(450,330,[[450,330],[450,90]]))
@@ -331,13 +332,21 @@ function enemyRobot(x,y,path=[]){
     }
     return rob;
 }
-
+let trueFps=0
 function animate() {
     if (playing){
         requestAnimationFrame(animate);
         now = Date.now();
         elapsed = now - then;
+        sec+=elapsed
+        trueFps++
+        if (sec > 1000) {
+            sec = 0;
+            document.getElementById("fps").innerHTML=trueFps;
+            trueFps=0
+        }
         if (elapsed > fpsInterval) {
+
             then = now - (elapsed % fpsInterval);
             ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
             
