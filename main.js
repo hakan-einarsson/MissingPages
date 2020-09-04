@@ -11,7 +11,8 @@ let playerPath=[];
 let obstaclesCoords=[];
 let obstacles=[];
 let enemies=[];
-let keys = {'w':0,'s':0,'a':0,'d':0}
+let projectiles=[];
+let keys = {'w':0,'s':0,'a':0,'d':0};
 let sec = 0;
 
 
@@ -58,7 +59,7 @@ function createCell(position){
             'x':position[0],
             'y':position[1],
             'name':position[0]/30+","+position[1]/30,
-            'position': {'x':position[0]+30/2,'y':position[1]+30/2}
+            'p': {'x':position[0]+30/2,'y':position[1]+30/2}
         };
 }
 
@@ -91,7 +92,7 @@ function startAnimating(fps) {
     animate();
 } 
 
-function getDirection(p){
+function getDirection(p){ //denna ska bort och getDirectionTo ska göras om så funkar även för detta.
     let distance=Math.sqrt(p.x*p.x+p.y*p.y);
     if (distance != 0) return {'x': p.x/distance,'y':p.y/distance};
 }
@@ -105,11 +106,11 @@ function getDirectionTo(p,toP){
 
 
 function isColliding(v,rect){
-    var distX = Math.abs(player.position.x - rect.position.x)-Math.abs(v.x); //mäter upp avstånd inkl v för nästa steg
-    var distY = Math.abs(player.position.y - rect.position.y)-Math.abs(v.y);
-    if (distX > (rect.width/2 + player.circleR)) { return false; } //kollar om avstånd är längre än mitt på rect till mitt på cirkel
-    if (distY > (rect.height/2 + player.circleR)) { return false; }
-    if (distX <= (rect.width/2) + (player.circleR)) {
+    var distX = Math.abs(player.position.x - rect.p.x)-Math.abs(v.x); //mäter upp avstånd inkl v för nästa steg
+    var distY = Math.abs(player.position.y - rect.p.y)-Math.abs(v.y);
+    if (distX > (rect.width/2 + player.r)) { return false; } //kollar om avstånd är längre än mitt på rect till mitt på cirkel
+    if (distY > (rect.height/2 + player.r)) { return false; }
+    if (distX <= (rect.width/2) + (player.r)) {
         console.log("first true")
         if (rect.x+rect.width < player.position.x && v.x > 0) return false;
         if (rect.x > player.position.x && v.x < 0) return false;
@@ -151,41 +152,48 @@ function drawGradientCircle(x,y,r1,r2){
     return gradientCircle;
 }
 
-let player= {
-    'width':20,
-    'height':22,
-    'position':{'x':70,'y':70},
-    'speed':2,
-    'radius':15,
-    'circleR':5,
-    'draw':function(){
-        let x = this.position.x;
-        let y = this.position.y;
-        let leftCorner=[x-direction.x*this.height+direction.y*this.width/2,
-            y-direction.y*this.height-direction.x*this.width/2];
-        let rightCorner=[x-direction.x*this.height-direction.y*this.width/2,
-                y-direction.y*this.height+direction.x*this.width/2];
-        let middle=[this.position.x-direction.x*this.height/2,this.position.y-direction.y*this.height/2];
-        ctx.beginPath();
-        ctx.fillStyle="#575756";
-        ctx.strokeStyle="black";
-        ctx.lineWidth="1";
-        ctx.moveTo(x,y);
-        ctx.lineTo(leftCorner[0],leftCorner[1]);
-        ctx.arcTo(middle[0],middle[1],rightCorner[0],rightCorner[1],this.radius);
-        ctx.lineTo(rightCorner[0],rightCorner[1]);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        drawCircle(x,y,5,true,"#575756",true)
-        drawCircle(x-1,y+1,4)
+function createPlayer(x,y){
+    return {
+        'width':20,
+        'height':22,
+        'position':{'x':x,'y':y},
+        'speed':3,
+        'radius':15,
+        'r':5,
+        'draw':function(){
+            let x = this.position.x;
+            let y = this.position.y;
+            let leftCorner=[x-direction.x*this.height+direction.y*this.width/2,
+                y-direction.y*this.height-direction.x*this.width/2];
+            let rightCorner=[x-direction.x*this.height-direction.y*this.width/2,
+                    y-direction.y*this.height+direction.x*this.width/2];
+            let middle=[this.position.x-direction.x*this.height/2,this.position.y-direction.y*this.height/2];
+            ctx.beginPath();
+            ctx.fillStyle="#575756";
+            ctx.strokeStyle="black";
+            ctx.lineWidth="1";
+            ctx.moveTo(x,y);
+            ctx.lineTo(leftCorner[0],leftCorner[1]);
+            ctx.arcTo(middle[0],middle[1],rightCorner[0],rightCorner[1],this.radius);
+            ctx.lineTo(rightCorner[0],rightCorner[1]);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            drawCircle(x,y,this.r,true,"#575756",true);
+            drawCircle(x-1,y+1,this.r-1);
+        }
     }
 }
+player = createPlayer(70,70);
 player.draw();
+
 enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
 enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
 enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
 enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
+
+/*let test=createProjectile(300,210,{'x':0.7,'y':0.7});
+test.draw();*/
 
 function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
     ctx.beginPath();
@@ -235,9 +243,8 @@ function drawTriangle(x1,y1,x2,y2,x3,y3,c,fill=true,stroke=false,sC="black"){
 
 }
 
-
 function drawCell(x,y,color){
-    drawLine(x+28,y+28,x+28,y+2,"rgba("+color+",1)","2",true,[[x+2,y+2]])
+    drawLine(x+28,y+28,x+28,y+2,"rgba("+color+",1)","2",true,[[x+2,y+2]]);
     drawLine(x+2,y+2,x+2,y+28,"rgba("+color+",0.2)","2",true,[[x+28,y+28]]);
     drawRect(x+3,y+3,24,24,true,"rgba("+color+",0.6)");
 }
@@ -245,53 +252,56 @@ function drawCell(x,y,color){
 function togglePlaying() {
     if (playing){
         playing=true;
-    } else startAnimating(120);
+    } else startAnimating(30);
 
 }
 
 function createTank(x,y,path){
-    return {/*'x':x,
-            'y':y,*/
+    return {'width':40,
+            'height':40,
             'p': {'x':x,'y':y},
             'r':20,
-            'speed':1,
+            'speed':2,
             'd':{'x':0.7,'y':-0.7},
             'aimD':{'x':1,'y':0},
             'c': "202,173,247",
             'path':path,
             'pathPart':1,
+            'cd':0,
             'move':function(){
                 if (this.pathPart+1 > this.path.length){
                     this.pathPart=0;
                 }
+                this.cd++;
                 this.d = getDirectionTo(this.p,this.path[this.pathPart]);
                 if (Math.abs(this.path[this.pathPart][0]-this.p.x) < this.speed && Math.abs(this.path[this.pathPart][1]-this.p.y) < this.speed){
-                    this.p.x=this.path[this.pathPart][0]
-                    this.p.y=this.path[this.pathPart][1]
-                    this.pathPart++
+                    this.p.x=this.path[this.pathPart][0];
+                    this.p.y=this.path[this.pathPart][1];
+                    this.pathPart++;
                 }
                 else {
-                    this.p.x+=this.d.x*this.speed
-                    this.p.y+=this.d.y*this.speed
+                    this.p.x+=this.d.x*this.speed;
+                    this.p.y+=this.d.y*this.speed;
                 }
             },
             'draw': function(){
-                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,true,"#000000")
+                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,true,"#000000");
                 drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y-this.r,this.p.x-this.r,this.p.y-this.r,"rgba("+this.c+",0.9)",true);//upp
                 drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y-this.r,this.p.x+this.r,this.p.y+this.r,"rgba("+this.c+",0.7)",true);//höger
                 drawTriangle(this.p.x,this.p.y,this.p.x-this.r,this.p.y-this.r,this.p.x-this.r,this.p.y+this.r,"rgba("+this.c+",0.5)",true);//vänster
                 drawTriangle(this.p.x,this.p.y,this.p.x+this.r,this.p.y+this.r,this.p.x-this.r,this.p.y+this.r,"rgba("+this.c+",0.3)",true);//ner
-                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,false,"",true)
-                drawLine(this.p.x,this.p.y,this.p.x+this.aimD.x*30,this.p.y+this.aimD.y*30,"#252525",10)
+                drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,false,"",true);
+                drawLine(this.p.x,this.p.y,this.p.x+this.aimD.x*30,this.p.y+this.aimD.y*30,"#252525",10);
                 drawCircle(this.p.x,this.p.y,this.r/1.5,true,"#000000");
-                drawCircle(this.p.x,this.p.y,this.r/1.5,true,"rgba("+this.c+",0.7)")
-                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"#000000")
-                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"rgba("+this.c+",0.6)")
+                drawCircle(this.p.x,this.p.y,this.r/1.5,true,"rgba("+this.c+",0.7)");
+                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"#000000");
+                drawCircle(this.p.x-1,this.p.y+1,this.r/1.5-2,true,"rgba("+this.c+",0.6)");
             },
             'setDirection':function(){
                 this.aimD=getDirectionTo({'x':this.p.x,'y':this.p.y},[player.position.x,player.position.y]);
-                console.log(this.aimD)
-                console.log(this.p)
+            },
+            'fireProjectile':function(){
+                projectiles.push(createProjectile(this.p.x+this.aimD.x*30,this.p.y+this.aimD.y*30,this.aimD));
             }
         }
 }
@@ -301,7 +311,7 @@ function enemyRobot(x,y,path=[]){
         'w':38,
         'h':25,
         'p':{'x':x,'y':y},
-        'speed':1,
+        'speed':2,
         'pathPart':1,
         'path':path,
         'd':{'x':0,'y':1},
@@ -330,20 +340,36 @@ function enemyRobot(x,y,path=[]){
                     this.p.x+this.d.y*10,
                     this.p.y+this.d.y*10,
                 "red");
-            //console.log(this.d)
         },
     }
     return rob;
 }
-let trueFps=0
+
+function createProjectile(x,y,d){
+    return {
+        'p':{'x':x,'y':y},
+        'r':4,
+        'd':d,
+        's':5,
+        'draw':function(){
+            drawCircle(this.p.x,this.p.y,this.r,true,"red");
+            drawCircle(this.p.x+this.r/3,this.p.y-this.r/3,this.r/4,true,"white");
+        },
+        'move':function(){
+            this.p.x+=this.s*this.d.x;
+            this.p.y+=this.s*this.d.y;
+        }
+    }
+}
+let trueFps=0;
 function animate() {
     if (playing){
         requestAnimationFrame(animate);
         now = Date.now();
         elapsed = now - then;
-        sec+=elapsed
-        trueFps++
-        if (sec > 1000) {
+        sec+=elapsed;
+        trueFps++;
+        if (sec >= 1000) {
             sec = 0;
             document.getElementById("fps").innerHTML=trueFps;
             trueFps=0
@@ -355,7 +381,7 @@ function animate() {
             
             cells.forEach(element => {
                 if (obstaclesCoords.includes(element.name)){
-                    drawCell(element.x,element.y,"89,125,128")
+                    drawCell(element.x,element.y,"89,125,128");
                 } else {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
@@ -363,13 +389,21 @@ function animate() {
             enemies.forEach(e => {
                 e.move();
                 e.setDirection();
+                if (e.cd > 50) {
+                    e.fireProjectile();
+                    e.cd=0;
+                }
                 e.draw();
             });
+            projectiles.forEach(e => {
+                e.move();
+                e.draw();
+            })
             if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
                 moving=true;
                 direction=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
-                player.height=22
-                player.radius=15     
+                player.height=22;
+                player.radius=15 ;    
             } else {
                 moving=false;
                 player.height=15;
@@ -381,18 +415,32 @@ function animate() {
                 circle.position.x++;
             }
             circle.draw();*/
-            colliding=false
+            colliding=false;
             for (i=0;i<obstacles.length;i++){
                 if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},obstacles[i])){
-                    colliding=true;
+                    colliding=["wall"];
                     }
                 }
+            for (i=0;i<enemies.length;i++){
+                if (isColliding({'x':direction.x*player.speed,'y':direction.y*player.speed},enemies[i])){
+                    colliding=["Enemy",enemies[i]];
+                    }
+                }
+            
             if (!colliding && moving){
                 player.position.x+=direction.x*player.speed;
                 player.position.y+=direction.y*player.speed;
 
                 }
-
+            if (colliding[0]=="Enemy"){
+                if(moving){
+                    player.position.x+=-direction.x*player.speed*2;
+                    player.position.y+=-direction.y*player.speed*2;
+                } else {
+                    player.position.x+=colliding[1].d.x*player.speed*2;
+                    player.position.y+=colliding[1].d.y*player.speed*2;
+                }
             }
         }
     }
+}
