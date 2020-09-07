@@ -15,9 +15,13 @@ let playerProjectiles=[];
 let projectiles=[];
 let keys = {'w':0,'s':0,'a':0,'d':0};
 let sec = 0;
+let explosions=[];
 
 
 
+
+
+//----------------ritar upp banan
 let cO=[]
 ys=[0,3,4,9,10]
 for (y=1;y < 15;y++){
@@ -48,21 +52,23 @@ cells.forEach(element => {
         drawCell(element.x,element.y,"179,250,255"); 
         }
     });
+    
+function createCell(position){
+        return {'width':30,
+                'height':30,
+                'x':position[0],
+                'y':position[1],
+                'name':position[0]/30+","+position[1]/30,
+                'p': {'x':position[0]+30/2,'y':position[1]+30/2}
+            };
+}
+//------------------------
 
 enemies.forEach(e => {
         e.draw();
     });
 
-
-function createCell(position){
-    return {'width':30,
-            'height':30,
-            'x':position[0],
-            'y':position[1],
-            'name':position[0]/30+","+position[1]/30,
-            'p': {'x':position[0]+30/2,'y':position[1]+30/2}
-        };
-}
+explosionTest(450,200,20)
 
 canvas.addEventListener('mousedown', function(e) {
     let x = getCursorPosition(canvas, e)
@@ -240,11 +246,10 @@ enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
 enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
 enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
 
-/*let test=createProjectile(300,210,{'x':0.7,'y':0.7});
-test.draw();*/
-
-function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black"){
+function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black",w=1,obj="null"){
+    if (obj != "null") console.log(x,y,r,fill,cFill,obj)
     ctx.beginPath();
+    ctx.lineWidth=w
     ctx.arc(x, y,r, 0, Math.PI * 2, true);
     if (fill) ctx.fillStyle=cFill;
     if (stroke) ctx.strokeStyle=cStroke
@@ -416,6 +421,48 @@ function createProjectile(x,y,d,c,s){
         }
     }
 }
+
+function explosionTest(x,y,r){
+    let exp = [];
+    for (i=0;i<5;i++){
+        exp.push(createExplosion(x,y,r,"255,0,0"));
+    }
+
+    return exp;
+    /*console.log("explosionTest")
+    for (i=0;i<5;i++){
+        let c = Math.random();
+        console.log(c)
+        drawCircle(x+Math.random()*r,y+Math.random()*r,Math.random()*r,true,"rgba(255,0,0"+Math.random()+")",true,"yellow");
+        //drawGradientCircle(x+Math.random()*r,y+Math.random()*r,Math.random()*r,Math.random()*r)
+    }*/
+}
+
+function createExplosion(x,y,r,c){
+    return {
+        'x':x,
+        'y':y,
+        'r':r,
+        'c':"rgb("+c+")",
+        'counter':1,
+        'desc':false,
+        'draw':function(){
+            //console.log(this.counter)
+            //for (i=0;i < 5;i++){
+            //console.log("this is happening")
+            //drawCircle(this.x,this.y,this.r,true,"red",false,"black",1,"exp")
+            drawCircle(x+Math.random()*100*1/r*2,
+                        y+Math.random()*100*1/r*2,
+                        (this.counter/this.r)*(r/3),true,
+                        this.c,true,"yellow",1,"exp");
+            //}
+            if (this.counter >= this.r*2) this.desc = true;
+            if(!this.desc) this.counter+=5;
+            else this.counter-=5;
+            
+        }
+    }
+}
 let trueFps=0;
 function animate() {
     if (playing){
@@ -441,6 +488,7 @@ function animate() {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
             });
+
             enemies.forEach(function (e,index) {
                 e.move();
                 e.setDirection();
@@ -453,7 +501,10 @@ function animate() {
                     for (i=0;i<playerProjectiles.length;i++)
                     if (isColliding(playerProjectiles[i],e)){ 
                         e.takeDamage(1);
-                        if (e.h <=0) enemies.splice(index,1);
+                        if (e.h <=0) {
+                            enemies.splice(index,1);
+                            explosions.push(explosionTest(e.p.x,e.p.y,20))
+                        }
                         playerProjectiles.splice(i,1);
                     }
                 }
@@ -469,6 +520,7 @@ function animate() {
                         projectiles.splice(index,1);
                         player.takeDamage(1);
                         if (player.h <= 0) player.death();
+                        explosionTest(player.p.x,player.p.y,20);
                     }
                 
 
@@ -494,12 +546,29 @@ function animate() {
                 player.height=21;
                 player.radius=12;
             }
-
+            
             player.draw(); 
             /*if (circle.position.x < canvas.width - 50 ){
                 circle.position.x++;
             }
             circle.draw();*/
+            //drawCircle(450,200,20,true,"red")
+            if (explosions.length > 0){
+                explosions.forEach(function(i,index){
+                    if (i.length < 1) explosions.splice(index,1);
+                    i.forEach(function(e,ind){
+                        
+                        if(e.counter==1 && e.desc){
+                            console.log("splicing")
+                            explosions[index].splice(ind,1);
+                            console.log("explosion ends")
+                        } 
+                        else {
+                            e.draw();
+                        }
+                    });
+                })
+            }    
             colliding=false;
             for (i=0;i<obstacles.length;i++){
                 if (isColliding(player,obstacles[i])){
