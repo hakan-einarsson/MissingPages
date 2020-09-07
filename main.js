@@ -16,7 +16,9 @@ let projectiles=[];
 let keys = {'w':0,'s':0,'a':0,'d':0};
 let sec = 0;
 let explosions=[];
+let playerHealth=5;
 
+let ui = createUi(20,20,playerHealth,playerHealth,80,25);
 
 
 
@@ -240,6 +242,7 @@ function createPlayer(x,y){
 }
 player = createPlayer(70,70);
 player.draw();
+ui.draw();
 
 enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
 enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
@@ -258,8 +261,9 @@ function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black",w
     ctx.closePath();
 }
 
-function drawRect(x,y,w,h,fill=true,cFill="black",stroke=false,cStroke="black"){
+function drawRect(x,y,w,h,fill=true,cFill="black",stroke=false,cStroke="black",lw=1){
     ctx.beginPath();
+    ctx.lineWidth=lw
     ctx.rect(x,y,w,h);
     ctx.closePath();
     if (fill) ctx.fillStyle=cFill;
@@ -463,6 +467,27 @@ function createExplosion(x,y,r,c){
         }
     }
 }
+
+function createUi(x,y,fh,ch,w,h){
+    return{
+        'x':x,
+        'y':y,
+        'fh':fh,
+        'ch': ch,
+        'w': w,
+        'h':h,
+        'c':"green",
+        'draw':function(){
+            this.ch=player.h;
+            if (this.ch <= this.fh*2/3) this.c="orange";
+            if (this.ch <= this.fh*1/3) this.c="red";
+
+            drawRect(this.x,this.y,this.w,this.h,true,"rgba(0,0,0,0.5)",true,"black",2);
+            drawRect(this.x,this.y,this.ch/this.fh*this.w,this.h,true,this.c);
+            drawRect(this.x,this.y,this.w,this.h,false,"",true,"black",2);
+        }
+    }
+}
 let trueFps=0;
 function animate() {
     if (playing){
@@ -596,6 +621,7 @@ function animate() {
                     player.p.y+=colliding[1].d.y*player.speed*2;
                 }
             }
+            ui.draw();
         }
     }
 }
