@@ -1,10 +1,11 @@
-var canvas = document.getElementById('canvas');
-var ctx = canvas.getContext('2d');
-var playing = false;
-var targetPosition = {'x':1,'y':1};
-var direction={'x':1,'y':0};
-//var moving=false;
-var cells = [];
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let playing = false;
+let targetPosition = {'x':1,'y':1};
+let direction={'x':1,'y':0};
+//let moving=false;
+let currentScene=0
+let cells = [];
 let newTarget=null;
 let circle = drawGradientCircle(50,50,1,50);
 let playerPath=[];
@@ -17,44 +18,87 @@ let keys = {'w':0,'s':0,'a':0,'d':0};
 let sec = 0;
 let explosions=[];
 let playerHealth=5;
-
+let doors = {'left':["0,7","0,6"], //"0,7","0,6","19,7","19,6","10,0","9,0","10,13","9,13",
+            'right':["19,7","19,6"],
+            'up': ["10,0","9,0"],
+            'down':["10,13","9,13"]};
+let emptyTemplate=["0,0", "0,1", "0,2", "0,3", "0,4", "0,5", "0,6", "0,7", "0,8", "0,9", "0,10", "0,11", "0,12", "0,13", "1,0", "1,13", "2,0", "2,13", "3,0", "3,13", "4,0", "4,13", "5,0", "5,13", "6,0", "6,13", "7,0", "7,13", "8,0", "8,13", "9,0", "9,13", "10,0", "10,13", "11,0", "11,13", "12,0", "12,13", "13,0", "13,13", "14,0", "14,13", "15,0", "15,13", "16,0", "16,13", "17,0", "17,13", "18,0", "18,13", "19,0", "19,1", "19,2", "19,3", "19,4", "19,5", "19,6", "19,7", "19,8", "19,9", "19,10", "19,11", "19,12", "19,13"]
+let templates=[
+    ["5,1", "14,1", "5,2", "14,2", "5,3", "14,3", "5,4", "14,4", "1,5", "2,5", "3,5", "4,5", "5,5", "14,5", "15,5", "16,5", "17,5", "18,5", "20,5", "1,8", "2,8", "3,8", "4,8", "5,8", "14,8", "15,8", "16,8", "17,8", "18,8", "20,8", "5,9", "14,9", "5,10", "14,10", "5,11", "14,11", "5,12", "14,12", "5,14", "14,14", "5,13", "14,13", "19,5", "19,8", "19,14", "19,15"], // 4 yttre kvardater
+    ["3,3", "4,3", "3,4", "4,4", "15,4", "15,3", "16,4", "16,3", "3,9", "3,10", "4,9", "4,10", "16,9", "16,10", "15,9", "15,10"], // 4 inner kvadrater
+    [], //Tom
+    ["9,1", "10,1", "9,2", "10,2", "9,5", "10,5", "9,6", "10,6", "9,7", "10,7", "9,8", "10,8", "9,11", "10,11", "9,12", "10,12", "9,14", "10,14"], //Mitten
+    ["7,1", "7,2", "7,3", "7,4", "7,5", "7,6", "7,7", "7,8", "7,9", "7,10", "7,11", "7,12", "7,14", "7,13"] //Delad vänster
+];
+enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
+enemies.push(createTank(150,210,[[150,300],[450,300],[450,120],[150,120]]));
+enemies.push(createTank(300,300,[[150,300],[450,300],[450,120],[150,120]]));
+enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
+enemies.push(createTank(450,210,[[450,300],[450,120],[150,120],[150,300]]));
+enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
+enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
+enemies.push(createTank(300,120,[[150,120],[150,300],[450,300],[450,120]]));
+let stage1 = [
+    createScene(2,[doors.left,doors.right],[1,null,4,null],"179,250,255","89,125,128"), //entrence 0
+    createScene(1,[doors.up,doors.right],[null,2,0,null],"179,250,255","89,125,128",enemies), //first left 1
+    createScene(0,[doors.up,doors.down],[null,3,null,1],"179,250,255","89,125,128"), //up from first left 2
+    createScene(2,[doors.right,doors.down],[null,null,7,2],"179,250,255","89,125,128"), // continue up 3 
+    createScene(1,[doors.left,doors.up],[0,5,null,null],"179,250,255","89,125,128"), // first right from entrance 4
+    createScene(2,[doors.up,doors.down],[null,6,null,4],"179,250,255","89,125,128"), // up from first right 5
+    createScene(0,[doors.left,doors.down],[7,null,null,5],"179,250,255","89,125,128"), // continue up 6
+    createScene(4,[doors.left,doors.up,doors.right],[3,8,6,null],"179,250,255","89,125,128"), // upp middle 7
+    createScene(2,[doors.down],[null,null,null,7],"179,250,255","89,125,128") // boss 8
+]
 let ui = createUi(20,20,playerHealth,playerHealth,80,25);
-
-
-
-
-//----------------ritar upp banan
-let cO=[]
-ys=[0,3,4,9,10]
-for (y=1;y < 15;y++){
-    for (x=1;x < 21;x++){
-        if (x == canvas.width/30/2 && !ys.includes(y)|| x == canvas.width/30/2-1 &&  !ys.includes(y)) obstaclesCoords.push(x.toString()+","+y.toString());
-    }
-}
-
-for (x=0;x<canvas.width/30;x++){
-    for(y=0;y<canvas.height/30;y++){
-        if (x==0 || y ==0 || x==canvas.width/30-1 || y==canvas.height/30-1) obstaclesCoords.push(x.toString()+","+y.toString());
-    }
-}
-
-obstaclesCoords.splice(obstaclesCoords.indexOf("0,7"),1);
-
 for (y=0; y < canvas.height; y+=30){
     for (x=0; x < canvas.width; x+=30){
         cells.push(createCell([x,y]));
     }
 }
+/*let scene = createScene(templates[1],[doors.left],[0,1],"179,250,255","89,125,128",enemies);
+scene.draw();*/
+stage1[currentScene].draw()
+//----------------ritar upp banan
+//let cO=[]
+/*ys=[0,3,4,9,10]
+for (y=1;y < 15;y++){
+    for (x=1;x < 21;x++){
+        //if (x == canvas.width/30/2 && !ys.includes(y)|| x == canvas.width/30/2-1 &&  !ys.includes(y)) obstaclesCoords.push(x.toString()+","+y.toString());
+        console.log(canvas.width/30)
+        if ( x == 5 && y < 6 || x == 5 && y > 7 ||  y == 5 && x < 5 || y == 8 && x < 5 || x == 14 && y < 6 || x == 14 && y > 7 ||  y == 5 && x > 13 || y == 8 && x > 13 )
+        {
+            obstaclesCoords.push(x.toString()+","+y.toString());
+            console.log("händer");
+        }
+    }
+}*/
 
-cells.forEach(element => {
+//document.getElementById("str").innerHTML=JSON.stringify(obstaclesCoords,null)
+
+/*for (x=0;x<canvas.width/30;x++){
+    for(y=0;y<canvas.height/30;y++){
+        if (x==0 || y ==0 || x==canvas.width/30-1 || y==canvas.height/30-1) obstaclesCoords.push(x.toString()+","+y.toString());
+    }
+}*/
+
+console.log(obstaclesCoords);
+templates.forEach(function (e,index){
+    emptyTemplate.forEach(p => {
+        if (e.includes(p)) templates[index].splice(e.indexOf(p),1);
+    })
+});
+templates.forEach(e =>{
+    console.log(e);
+})
+//door left "0,7","0,6" door right "19,7","19,6" door up "10,0","9,0" dorr down "10,13", "9,13"
+/*cells.forEach(element => {
     if (obstaclesCoords.includes(element.name)){
-        drawCell(element.x,element.y,"89,125,128");
+        drawCell(element.x,element.y,scene.cD);
         obstacles.push(element);
     } else {
-        drawCell(element.x,element.y,"179,250,255"); 
+        drawCell(element.x,element.y,scene.cB); 
         }
-    });
-    
+    });*/
 function createCell(position){
         return {'width':30,
                 'height':30,
@@ -62,36 +106,59 @@ function createCell(position){
                 'y':position[1],
                 'name':position[0]/30+","+position[1]/30,
                 'p': {'x':position[0]+30/2,'y':position[1]+30/2}
+
             };
 }
 //------------------------
+function createScene(template,doors,exits=[0,0,0,0],colorB,colorD,enemies=[]){
+    let tmpl=JSON.parse(JSON.stringify(emptyTemplate))
+    templates[template].forEach(e => tmpl.push(e))
+    //console.log(doors)
+    //console.log(template.indexOf(doors[0]))
+    doors.forEach(i =>{
+        i.forEach(e =>{
+            tmpl.splice(tmpl.indexOf(e),1);
 
-enemies.forEach(e => {
-        e.draw();
+        });
     });
-
+    return {
+        'tpl':tmpl,
+        'cB':colorB,
+        'cD':colorD,
+        'enemies':enemies,
+        'leftScene':exits[0],
+        'upScene':exits[1],
+        'rightScene':exits[2],
+        'downScene':exits[3],
+        'draw':function(){
+            cells.forEach(element => {
+            if (this.tpl.includes(element.name)){
+                drawCell(element.x,element.y,this.cD);
+                obstacles.push(element);
+            } else {
+                drawCell(element.x,element.y,this.cB); 
+                }
+            });
+        }
+    }
+}
 explosionTest(450,200,20)
-
 canvas.addEventListener('mousedown', function(e) {
     let x = getCursorPosition(canvas, e)
     player.shoot(getDirectionTo(player.p,[x.x,x.y]));
 });
-
 window.addEventListener('keydown',function(e){
     if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=1;
 });
-
 window.addEventListener('keyup', function(e) {
     if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=0;
 })
-
 function getCursorPosition(canvas, event) {
     const rect = canvas.getBoundingClientRect()
     const x = event.clientX - rect.left
     const y = event.clientY - rect.top
     return {'x':x,"y":y};
 }
-
 function startAnimating(fps) {
     playing=true;
     fpsInterval = 1000 / fps;
@@ -99,20 +166,16 @@ function startAnimating(fps) {
     startTime = then;
     animate();
 } 
-
 function getDirection(p){ //denna ska bort och getDirectionTo ska göras om så funkar även för detta.
     let distance=Math.sqrt(p.x*p.x+p.y*p.y);
     if (distance != 0) return {'x': p.x/distance,'y':p.y/distance};
 }
-
 function getDirectionTo(p,toP){
     let dx = toP[0]-p.x;
     let dy = toP[1]-p.y;
     let distance=Math.sqrt(dx*dx+dy*dy);
     if (distance != 0) return {'x': dx/distance,'y':dy/distance,'d':distance};
 }
-
-
 function isColliding(circle,rect){
     var distX = Math.abs(circle.p.x - rect.p.x)-Math.abs(circle.d.x*circle.speed); 
     var distY = Math.abs(circle.p.y - rect.p.y)-Math.abs(circle.d.y*circle.speed);
@@ -130,7 +193,6 @@ function isColliding(circle,rect){
 function isCollidingC(c1,c2){
     return Math.abs((c1.p.x - c2.p.x) * (c1.p.x - c2.p.x) + (c1.p.y - c2.p.y) * (c1.p.y - c2.p.y)) < (c1.r + c2.r) * (c1.r + c2.r);
 }
-
 function drawGradientCircle(x,y,r1,r2){
     let gradientCircle = {
         'position':{'x':x,'y':y},
@@ -160,7 +222,6 @@ function drawGradientCircle(x,y,r1,r2){
     }
     return gradientCircle;
 }
-
 function createPlayer(x,y){
     return {
         'width':28,
@@ -174,6 +235,7 @@ function createPlayer(x,y){
         'r':7,
         'counter':{'cd':0,
                     'anim':0},
+        'entered':'center',
         'dead':false,
         'draw':function(){
             if (!this.dead){
@@ -192,7 +254,7 @@ function createPlayer(x,y){
                     leftCorner[1]+=this.d.x*this.r/2;
                 }
                 if (this.counter.anim % 12 < 9 && this.counter.anim % 12 > 5 && this.m){
-                    console.log("right")
+                    //console.log("right")
                     rightCorner[0]-=this.d.y*this.r/2;
                     rightCorner[1]-=this.d.x*this.r/2;
                 }
@@ -231,26 +293,23 @@ function createPlayer(x,y){
             this.p.x+=this.d.x*this.speed;
             this.p.y+=this.d.y*this.speed;
         },'takeDamage':function(dmg){
-            console.log("taking: ",dmg," in dmg");
+            //console.log("taking: ",dmg," in dmg");
             this.h-=dmg;
-            console.log("health: ",this.h)
+            //console.log("health: ",this.h)
         },'death':function(){
-            console.log("death");
+            //console.log("death");
             this.dead=true;
         }
     }
 }
-player = createPlayer(70,70);
+player = createPlayer(canvas.width/2,canvas.height/2);
 player.draw();
 ui.draw();
 
-enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
-enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
-enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
-enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
+
 
 function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black",w=1,obj="null"){
-    if (obj != "null") console.log(x,y,r,fill,cFill,obj)
+    //if (obj != "null") console.log(x,y,r,fill,cFill,obj)
     ctx.beginPath();
     ctx.lineWidth=w
     ctx.arc(x, y,r, 0, Math.PI * 2, true);
@@ -488,6 +547,28 @@ function createUi(x,y,fh,ch,w,h){
         }
     }
 }
+
+function newScene(){ //måste veta vilken scen som kommer. Det borde finnas en left/right/up/down
+    
+    if (player.entered=="left"){
+        currentScene=stage1[currentScene].leftScene
+        player.p.x=canvas.width-10;
+    } else if (player.entered=="right"){
+        currentScene=stage1[currentScene].rightScene
+        player.p.x=10;
+    } else if (player.entered=="up"){
+        currentScene=stage1[currentScene].upScene
+        player.p.y=canvas.height-10;
+    } else if (player.entered == "down"){
+        currentScene=stage1[currentScene].downScene
+        player.p.y=10;
+    } else {
+        player.p.x=canvas.width/2;
+        player.p.y=canvas.height/2;
+    }
+    
+    
+}
 let trueFps=0;
 function animate() {
     if (playing){
@@ -506,15 +587,16 @@ function animate() {
             then = now - (elapsed % fpsInterval);
             ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
             
-            cells.forEach(element => {
+            stage1[currentScene].draw();
+            /*cells.forEach(element => {
                 if (obstaclesCoords.includes(element.name)){
                     drawCell(element.x,element.y,"89,125,128");
                 } else {
                     drawCell(element.x,element.y,"179,250,255");   
                     }
-            });
+            });*/
 
-            enemies.forEach(function (e,index) {
+            stage1[currentScene].enemies.forEach(function (e,index) {
                 e.move();
                 e.setDirection();
                 if (e.cd > 50) {
@@ -584,9 +666,9 @@ function animate() {
                     i.forEach(function(e,ind){
                         
                         if(e.counter==1 && e.desc){
-                            console.log("splicing")
+                            //console.log("splicing")
                             explosions[index].splice(ind,1);
-                            console.log("explosion ends")
+                            //console.log("explosion ends")
                         } 
                         else {
                             e.draw();
@@ -600,7 +682,7 @@ function animate() {
                     colliding=["wall"];
                     }
                 }
-            for (i=0;i<enemies.length;i++){
+            for (i=0;i<stage1[currentScene].enemies.length;i++){
                 if (isColliding(player,enemies[i])){
                     colliding=["Enemy",enemies[i]];
                     }
@@ -608,8 +690,7 @@ function animate() {
             
             if (!colliding && player.m){
                 player.move();
-
-                }
+                checkPlayerPosition();
             if (colliding[0]=="Enemy"){
                 if(player.m){
                     player.takeDamage(1);
@@ -619,9 +700,18 @@ function animate() {
                     player.takeDamage(1);
                     player.p.x+=colliding[1].d.x*player.speed*2;
                     player.p.y+=colliding[1].d.y*player.speed*2;
+                    }
                 }
             }
-            ui.draw();
+        ui.draw();
         }
     }
+}
+
+function checkPlayerPosition(){
+    if (player.p.x < 0){ player.entered="left"; newScene(); obstacles=[]}
+    if (player.p.x > canvas.width) { player.entered="right"; newScene(); obstacles=[]}
+    if (player.p.y < 0) { player.entered="up"; newScene(); obstacles=[]}
+    if (player.p.y > canvas.height) { player.entered="down"; newScene(); obstacles=[]}
+    
 }
