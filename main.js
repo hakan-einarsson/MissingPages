@@ -30,14 +30,14 @@ let templates=[
     ["9,1", "10,1", "9,2", "10,2", "9,5", "10,5", "9,6", "10,6", "9,7", "10,7", "9,8", "10,8", "9,11", "10,11", "9,12", "10,12", "9,14", "10,14"], //Mitten
     ["7,1", "7,2", "7,3", "7,4", "7,5", "7,6", "7,7", "7,8", "7,9", "7,10", "7,11", "7,12", "7,14", "7,13"] //Delad vänster
 ];
-enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
+/*enemies.push(createTank(150,300,[[150,300],[450,300],[450,120],[150,120]]));
 enemies.push(createTank(150,210,[[150,300],[450,300],[450,120],[150,120]]));
 enemies.push(createTank(300,300,[[150,300],[450,300],[450,120],[150,120]]));
 enemies.push(createTank(450,300,[[450,300],[450,120],[150,120],[150,300]]));
 enemies.push(createTank(450,210,[[450,300],[450,120],[150,120],[150,300]]));
 enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
 enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
-enemies.push(createTank(300,120,[[150,120],[150,300],[450,300],[450,120]]));
+enemies.push(createTank(300,120,[[150,120],[150,300],[450,300],[450,120]]));*/
 
 for (i=0;i<5;i++){
     enemies.push(smallRobot((i+1)*100,100))
@@ -161,13 +161,13 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 window.addEventListener("gamepadconnected", function(e) {
-    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+    /*console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
       e.gamepad.index, e.gamepad.id,
-      e.gamepad.buttons.length, e.gamepad.axes.length);
+      e.gamepad.buttons.length, e.gamepad.axes.length);*/
   });
   
 window.addEventListener('keydown',function(e){
-    console.log(e)
+    //console.log(e)
     if (e.key == 'ArrowUp' || e.key == 'ArrowDown' || e.key == 'ArrowLeft' || e.key == 'ArrowRight') keys[e.key]=1;
     if (e.key == 'Control') player.shoot(player.d); 
 });
@@ -213,9 +213,9 @@ function isColliding(circle,rect){
         }
 return false;
     } catch (e){
-        console.log(circle)
-        console.log(rect)
-        console.log(e)
+        //console.log(circle)
+        //console.log(rect)
+        //console.log(e)
     }
 }
 function isCollidingC(c1,c2){
@@ -692,32 +692,42 @@ function animate() {
                 }
                 
             });
-            projectiles.forEach(function (e,index) {
+            for (n=0;n<projectiles.length;n++) {
+                let col=false
                 for(i=0;i < obstacles.length;i++){
-                    if (isColliding(e,obstacles[i])){
-                        projectiles.splice(index,1);
+                    if (isColliding(projectiles[n],obstacles[i])){
+                        col=true
+                        projectiles.splice(n,1);
                     }
                 }
-                    if (isCollidingC(e,player)){
-                        projectiles.splice(index,1);
-                        player.takeDamage(1);
-                        if (player.h <= 0) player.death();
-                        explosionTest(player.p.x,player.p.y,20);
+                if (isCollidingC(projectiles[n],player) && !col){
+                    col=true;
+                    projectiles.splice(n,1);
+                    player.takeDamage(1);
+                    if (player.h <= 0) player.death();
+                    explosionTest(player.p.x,player.p.y,20);
+                    
                     }
                 
-
-                e.move();
-                e.draw();
-            });
-            playerProjectiles.forEach(function (e,index) {
+                if (!col){
+                    projectiles[n].move();
+                    projectiles[n].draw();
+                } else break;
+            };
+            for (n=0;n<playerProjectiles.length;n++) {
+                let col=false
                 for(i=0;i < obstacles.length;i++){
-                    if (isColliding(e,obstacles[i])){
-                        playerProjectiles.splice(index,1);
+                    if (isColliding(playerProjectiles[n],obstacles[i])){
+                        playerProjectiles.splice(n,1);
+                        col=true;
+                        break;
                     }
                 }
-                e.move();
-                e.draw();
-            });
+                if (!col){
+                    playerProjectiles[n].move();
+                    playerProjectiles[n].draw();
+                }
+            };
             if (keys.ArrowRight-keys.ArrowLeft != 0 || keys.ArrowDown-keys.ArrowUp !=0){ //check if moving
                 player.m=true;
                 player.d=getDirection({'x':keys.ArrowRight-keys.ArrowLeft,'y':keys.ArrowDown-keys.ArrowUp});
