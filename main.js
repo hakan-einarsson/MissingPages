@@ -14,7 +14,7 @@ let obstacles=[];
 let enemies=[];
 let playerProjectiles=[];
 let projectiles=[];
-let keys = {'w':0,'s':0,'a':0,'d':0};
+let keys = {'ArrowUp':0,'ArrowDown':0,'ArrowLeft':0,'ArrowRight':0};
 let sec = 0;
 let explosions=[];
 let playerHealth=5;
@@ -38,9 +38,14 @@ enemies.push(createTank(450,210,[[450,300],[450,120],[150,120],[150,300]]));
 enemies.push(createTank(450,120,[[450,120],[150,120],[150,300],[450,300]]));
 enemies.push(createTank(150,120,[[150,120],[150,300],[450,300],[450,120]]));
 enemies.push(createTank(300,120,[[150,120],[150,300],[450,300],[450,120]]));
+
+for (i=0;i<5;i++){
+    enemies.push(smallRobot((i+1)*100,100))
+    }
+
 let stage1 = [
-    createScene(2,[doors.left,doors.right],[1,null,4,null],"179,250,255","89,125,128"), //entrence 0
-    createScene(1,[doors.up,doors.right],[null,2,0,null],"179,250,255","89,125,128",enemies), //first left 1
+    createScene(2,[doors.left,doors.right],[1,null,4,null],"179,250,255","89,125,128",enemies), //entrence 0
+    createScene(1,[doors.up,doors.right],[null,2,0,null],"179,250,255","89,125,128"), //first left 1
     createScene(0,[doors.up,doors.down],[null,3,null,1],"179,250,255","89,125,128"), //up from first left 2
     createScene(2,[doors.right,doors.down],[null,null,7,2],"179,250,255","89,125,128"), // continue up 3 
     createScene(1,[doors.left,doors.up],[0,5,null,null],"179,250,255","89,125,128"), // first right from entrance 4
@@ -55,9 +60,12 @@ for (y=0; y < canvas.height; y+=30){
         cells.push(createCell([x,y]));
     }
 }
+
+
 /*let scene = createScene(templates[1],[doors.left],[0,1],"179,250,255","89,125,128",enemies);
 scene.draw();*/
 stage1[currentScene].draw()
+stage1[currentScene].enemies.forEach(e => e.draw())
 //----------------ritar upp banan
 //let cO=[]
 /*ys=[0,3,4,9,10]
@@ -81,7 +89,7 @@ for (y=1;y < 15;y++){
     }
 }*/
 
-console.log(obstaclesCoords);
+/*console.log(obstaclesCoords);
 templates.forEach(function (e,index){
     emptyTemplate.forEach(p => {
         if (e.includes(p)) templates[index].splice(e.indexOf(p),1);
@@ -99,13 +107,17 @@ templates.forEach(e =>{
         drawCell(element.x,element.y,scene.cB); 
         }
     });*/
+let trueFps=0;
+startAnimating(30);
 function createCell(position){
         return {'width':30,
                 'height':30,
                 'x':position[0],
                 'y':position[1],
                 'name':position[0]/30+","+position[1]/30,
-                'p': {'x':position[0]+30/2,'y':position[1]+30/2}
+                'p': {'x':position[0]+30/2,'y':position[1]+30/2},
+                'd': {'x':0,'y':0},
+                'speed':0
 
             };
 }
@@ -147,11 +159,20 @@ canvas.addEventListener('mousedown', function(e) {
     let x = getCursorPosition(canvas, e)
     player.shoot(getDirectionTo(player.p,[x.x,x.y]));
 });
+
+window.addEventListener("gamepadconnected", function(e) {
+    console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+      e.gamepad.index, e.gamepad.id,
+      e.gamepad.buttons.length, e.gamepad.axes.length);
+  });
+  
 window.addEventListener('keydown',function(e){
-    if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=1;
+    console.log(e)
+    if (e.key == 'ArrowUp' || e.key == 'ArrowDown' || e.key == 'ArrowLeft' || e.key == 'ArrowRight') keys[e.key]=1;
+    if (e.key == 'Control') player.shoot(player.d); 
 });
 window.addEventListener('keyup', function(e) {
-    if (e.key == 'w' || e.key == 's' || e.key == 'a' || e.key == 'd') keys[e.key]=0;
+    if (e.key == 'ArrowUp' || e.key == 'ArrowDown' || e.key == 'ArrowLeft' || e.key == 'ArrowRight') keys[e.key]=0;
 })
 function getCursorPosition(canvas, event) {
     const rect = canvas.getBoundingClientRect()
@@ -177,18 +198,25 @@ function getDirectionTo(p,toP){
     if (distance != 0) return {'x': dx/distance,'y':dy/distance,'d':distance};
 }
 function isColliding(circle,rect){
-    var distX = Math.abs(circle.p.x - rect.p.x)-Math.abs(circle.d.x*circle.speed); 
-    var distY = Math.abs(circle.p.y - rect.p.y)-Math.abs(circle.d.y*circle.speed);
-    if (distX > (rect.width/2 + circle.r)) { return false; } 
-    if (distY > (rect.height/2 + circle.r)) { return false; }
-    if (distX <= (rect.width/2) + (circle.r)) {
-        if (rect.x+rect.width < circle.p.x && circle.d.x*circle.speed > 0) return false;
-        if (rect.x > circle.p.x && circle.d.x*circle.speed < 0) return false;
-        if (rect.y+rect.height < circle.p.y && circle.d.y*circle.speed > 0) return false;
-        if (rect.y > circle.p.y && circle.d.y*circle.speed < 0) return false;
-        return true; 
+    try {
+        var distX = Math.abs(circle.p.x - rect.p.x)-Math.abs(circle.d.x*circle.speed)-Math.abs(rect.d.x*rect.speed); 
+        var distY = Math.abs(circle.p.y - rect.p.y)-Math.abs(circle.d.y*circle.speed)-Math.abs(rect.d.y*rect.speed);
+        //if (!distX) console.log("not distX")
+        if (distX > (rect.width/2 + circle.r)) { return false; } 
+        if (distY > (rect.height/2 + circle.r)) { return false; }
+        if (distX <= (rect.width/2) + (circle.r)) {
+            if (rect.x+rect.width < circle.p.x && circle.d.x*circle.speed > 0) return false;
+            if (rect.x > circle.p.x && circle.d.x*circle.speed < 0) return false;
+            if (rect.y+rect.height < circle.p.y && circle.d.y*circle.speed > 0) return false;
+            if (rect.y > circle.p.y && circle.d.y*circle.speed < 0) return false;
+            return true; 
+        }
+return false;
+    } catch (e){
+        console.log(circle)
+        console.log(rect)
+        console.log(e)
     }
-    return false;
 }
 function isCollidingC(c1,c2){
     return Math.abs((c1.p.x - c2.p.x) * (c1.p.x - c2.p.x) + (c1.p.y - c2.p.y) * (c1.p.y - c2.p.y)) < (c1.r + c2.r) * (c1.r + c2.r);
@@ -233,6 +261,7 @@ function createPlayer(x,y){
         'radius':15,
         'h':5,
         'r':7,
+        'name':'player',
         'counter':{'cd':0,
                     'anim':0},
         'entered':'center',
@@ -302,14 +331,13 @@ function createPlayer(x,y){
         }
     }
 }
-player = createPlayer(canvas.width/2,canvas.height/2);
+player = createPlayer(canvas.width/1.5,canvas.height/1.5);
 player.draw();
 ui.draw();
 
 
 
 function drawCircle(x,y,r,fill=true,cFill="black",stroke=false,cStroke="black",w=1,obj="null"){
-    //if (obj != "null") console.log(x,y,r,fill,cFill,obj)
     ctx.beginPath();
     ctx.lineWidth=w
     ctx.arc(x, y,r, 0, Math.PI * 2, true);
@@ -384,12 +412,17 @@ function createTank(x,y,path){
             'h':3,
             'path':path,
             'pathPart':1,
+            'name':'tank',
             'cd':0,
             'move':function(){
                 if (this.pathPart+1 > this.path.length){
                     this.pathPart=0;
                 }
                 this.cd++;
+                if (this.cd > 50) {
+                    this.fireProjectile();
+                    this.cd=0;
+                }
                 this.d = getDirectionTo(this.p,this.path[this.pathPart]);
                 if (Math.abs(this.path[this.pathPart][0]-this.p.x) < this.speed && Math.abs(this.path[this.pathPart][1]-this.p.y) < this.speed){
                     this.p.x=this.path[this.pathPart][0];
@@ -400,6 +433,8 @@ function createTank(x,y,path){
                     this.p.x+=this.d.x*this.speed;
                     this.p.y+=this.d.y*this.speed;
                 }
+                this.setDirection();
+
             },
             'draw': function(){
                 drawRect(this.p.x-this.r,this.p.y-this.r,this.r*2,this.r*2,true,"#000000");
@@ -424,6 +459,63 @@ function createTank(x,y,path){
                 this.h-=dmg;
             }
         }
+}
+
+function smallRobot(x,y){
+    return {
+        'p': {'x':x,'y':y},
+        'width':25,
+        'height':18,
+        'speed':1,
+        'r':10,
+        'd':{'x':1,'y':0},
+        'aim':{'x':1,'y':0},
+        'name':"smallRobot",
+        'h':3,
+        'counter':0,
+        'colliding':false,
+        'draw':function(){
+            if(this.d.x !=0) drawRect(this.p.x-this.height/2,this.p.y-this.width/2,this.height,this.width,true,"#505050",true,"#151515",2);
+            else drawRect(this.p.x-this.width/2,this.p.y-this.height/2,this.width,this.height,true,"#505050",true,"#151515",2);
+            drawCircle(this.p.x,this.p.y,7,true,"black");
+            drawCircle(this.p.x,this.p.y,5,true,"rgb(200,0,0)");
+            drawCircle(this.p.x+2,this.p.y-3,3,true,"rgb(255,150,150)");
+            drawCircle(this.p.x,this.p.y,10,true,"rgba(25,25,25,0.5)",true,"white");
+
+        },
+        'move':function(){
+            this.counter++;
+            if(this.counter > 25) {
+                this.setDirection();
+                this.counter=0;
+            }
+            if(this.counter == 10){ 
+                if(Math.random() > 0.5){ 
+                    this.shoot();
+                }
+            }
+            
+            if (!this.colliding) {
+                this.p.x+=this.d.x*this.speed;
+                this.p.y+=this.d.y*this.speed;
+            } else this.setDirection();
+            
+            this.colliding=false
+        },
+        'setDirection':function() {
+            let ds=[{'x':0,'y':1},{'x':0,'y':-1},{'x':1,'y':0},{'x':-1,'y':0}];
+            this.d=ds[Math.floor(Math.random()*10)%4];
+            this.aim=ds[Math.floor(Math.random()*10)%4];
+            this.speed=Math.floor(Math.random()*10)%3+1;
+
+        },
+        'shoot':function(){
+            projectiles.push(createProjectile(this.p.x+this.aim.x*30,this.p.y+this.aim.y*30,this.aim,"red",10));
+        },
+        'takeDamage':function(dmg){
+            this.h-=dmg;
+        }
+    }
 }
 
 function enemyRobot(x,y,path=[]){
@@ -473,6 +565,7 @@ function createProjectile(x,y,d,c,s){
         'speed':s,
         'c':c,
         'l':0,
+        'name':'projectile',
         'draw':function(){
             this.l++;
             drawCircle(this.p.x,this.p.y,this.r,true,c);
@@ -492,13 +585,6 @@ function explosionTest(x,y,r){
     }
 
     return exp;
-    /*console.log("explosionTest")
-    for (i=0;i<5;i++){
-        let c = Math.random();
-        console.log(c)
-        drawCircle(x+Math.random()*r,y+Math.random()*r,Math.random()*r,true,"rgba(255,0,0"+Math.random()+")",true,"yellow");
-        //drawGradientCircle(x+Math.random()*r,y+Math.random()*r,Math.random()*r,Math.random()*r)
-    }*/
 }
 
 function createExplosion(x,y,r,c){
@@ -510,10 +596,6 @@ function createExplosion(x,y,r,c){
         'counter':1,
         'desc':false,
         'draw':function(){
-            //console.log(this.counter)
-            //for (i=0;i < 5;i++){
-            //console.log("this is happening")
-            //drawCircle(this.x,this.y,this.r,true,"red",false,"black",1,"exp")
             drawCircle(x+Math.random()*100*1/r*2,
                         y+Math.random()*100*1/r*2,
                         (this.counter/this.r)*(r/3),true,
@@ -569,7 +651,7 @@ function newScene(){ //måste veta vilken scen som kommer. Det borde finnas en l
     
     
 }
-let trueFps=0;
+
 function animate() {
     if (playing){
         requestAnimationFrame(animate);
@@ -588,21 +670,14 @@ function animate() {
             ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
             
             stage1[currentScene].draw();
-            /*cells.forEach(element => {
-                if (obstaclesCoords.includes(element.name)){
-                    drawCell(element.x,element.y,"89,125,128");
-                } else {
-                    drawCell(element.x,element.y,"179,250,255");   
-                    }
-            });*/
 
             stage1[currentScene].enemies.forEach(function (e,index) {
+                obstacles.forEach(o =>{
+                    if (e.name=="smallRobot" && isColliding(e,o)){ 
+                        e.colliding=true;
+                    }
+                });
                 e.move();
-                e.setDirection();
-                if (e.cd > 50) {
-                    e.fireProjectile();
-                    e.cd=0;
-                }
                 e.draw();
                 if (playerProjectiles.length > 0){
                     for (i=0;i<playerProjectiles.length;i++)
@@ -643,9 +718,9 @@ function animate() {
                 e.move();
                 e.draw();
             });
-            if (keys.d-keys.a != 0 || keys.s-keys.w !=0){ //check if moving
+            if (keys.ArrowRight-keys.ArrowLeft != 0 || keys.ArrowDown-keys.ArrowUp !=0){ //check if moving
                 player.m=true;
-                player.d=getDirection({'x':keys.d-keys.a,'y':keys.s-keys.w});
+                player.d=getDirection({'x':keys.ArrowRight-keys.ArrowLeft,'y':keys.ArrowDown-keys.ArrowUp});
                 player.height=31;
                 player.radius=15 ;    
             } else {
@@ -655,11 +730,7 @@ function animate() {
             }
             
             player.draw(); 
-            /*if (circle.position.x < canvas.width - 50 ){
-                circle.position.x++;
-            }
-            circle.draw();*/
-            //drawCircle(450,200,20,true,"red")
+
             if (explosions.length > 0){
                 explosions.forEach(function(i,index){
                     if (i.length < 1) explosions.splice(index,1);
